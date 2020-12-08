@@ -6,8 +6,8 @@ replicaCount: 1
 # Define update strategy for the deployment.
 strategy: {}
 #  rollingUpdate:
-#    maxUnavailable: 25%
-#    maxSurge: 25%
+#    maxUnavailable: 10%
+#    maxSurge: 50%
 
 # Labels & Annotations for the Deployment
 deployment:
@@ -20,17 +20,17 @@ pod:
 
 image:
   repository: allir/pgbouncer
-  tag: 1.12
+  tag: 1.14
   pullPolicy: Always
 
 imagePullSecrets: []
 #  - name: repo-credentials
  
 # enable/disable pod anti-affinity rules.
-# mode sets the preffered or required during scheduling settings while topology can be set to per node/host or per zone/az
+# mode sets the preffered or required during scheduling settings while topology can be set to per node/host, zone/az or region
 #
 # mode: soft|hard
-# topology: host|zone
+# topology: host|zone|region
 antiAffinity:
   enabled: true
   mode: soft

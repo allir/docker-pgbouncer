@@ -1,4 +1,4 @@
-FROM ubuntu:20.04
+FROM ubuntu:20.10
 
 ENV LANG C.UTF-8
 ENV PG_CONFIG /etc/pgbouncer/pgbouncer.ini
@@ -7,7 +7,7 @@ EXPOSE 6432/tcp
 
 RUN set -x\
     && apt-get -qq update \
-    && apt-get install -yq --no-install-recommends pgbouncer=1.12.0-3 \
+    && apt-get install -yq --no-install-recommends pgbouncer=1.14.0-1 \
     && apt-get purge -y --auto-remove \
     && rm -rf /var/lib/apt/lists/*
 

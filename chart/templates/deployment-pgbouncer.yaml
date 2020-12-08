@@ -49,7 +49,9 @@ spec:
               {{- if eq .Values.antiAffinity.topology "host" }}
               topologyKey: kubernetes.io/hostname
               {{- else if eq .Values.antiAffinity.topology "zone" }}
-              topologyKey: kubernetes.io/zone
+              topologyKey: topology.kubernetes.io/zone
+              {{- else if eq .Values.antiAffinity.topology "region" }}
+              topologyKey: topology.kubernetes.io/region
               {{- end }}
           {{- else if eq .Values.antiAffinity.mode "soft" }}
           preferredDuringSchedulingIgnoredDuringExecution:
@@ -60,7 +62,9 @@ spec:
                 {{- if eq .Values.antiAffinity.topology "host" }}
                 topologyKey: kubernetes.io/hostname
                 {{- else if eq .Values.antiAffinity.topology "zone" }}
-                topologyKey: kubernetes.io/zone
+                topologyKey: topology.kubernetes.io/zone
+                {{- else if eq .Values.antiAffinity.topology "region" }}
+                topologyKey: topology.kubernetes.io/region
                 {{- end }}
               weight: 100
           {{- end }}

@@ -1,0 +1,14 @@
+{{- if or (.Values.budget.minAvailable) (.Values.budget.maxUnavailable) -}}
+apiVersion: policy/v1beta1
+kind: PodDisruptionBudget
+metadata:
+  name: {{ include "pgbouncer.fullname" . }}
+  labels:
+    {{- include "pgbouncer.labels" . | nindent 4 }}
+spec:
+  selector:
+    matchLabels:
+      {{- include "pgbouncer.selectorLabels" . | nindent 6 }}
+  minAvailable: {{ .Values.budget.minAvailable }}
+  maxUnavailable: {{ .Values.budget.maxUnavailable }}
+{{- end -}}

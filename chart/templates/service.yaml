@@ -1,0 +1,24 @@
+{{- if .Values.service.enabled  }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ default (include "pgbouncer.fullname" .) .Values.service.name }}
+  labels:
+    {{- include "pgbouncer.labels" . | nindent 4 }}
+    {{- if .Values.service.labels }}
+    {{- toYaml .Values.service.labels | nindent 4 }}
+    {{- end }}
+  annotations:
+    {{- if .Values.service.annotations }}
+    {{- toYaml .Values.service.annotations | nindent 4 }}
+    {{- end }}
+spec:
+  type: {{ .Values.service.type }}
+  selector:
+    {{- include "pgbouncer.selectorLabels" . | nindent 6 }}
+  ports:
+    - port: {{ .Values.service.port }}
+      targetPort: postgres
+      protocol: TCP
+      name: postgres
+{{- end }}

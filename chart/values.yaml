@@ -1,0 +1,105 @@
+# Deployment values for PgBouncer
+### Kubernetes Configuration
+# Number of replicas to deploy
+replicaCount: 1
+
+# Define update strategy for the deployment.
+strategy: {}
+#  rollingUpdate:
+#    maxUnavailable: 25%
+#    maxSurge: 25%
+
+# Labels & Annotations for the Deployment
+deployment:
+  labels: {}
+  annotations: {}
+# Labels & Annotations for the Pod Spec
+pod:
+  labels: {}
+  annotations: {}
+
+image:
+  repository: allir/pgbouncer
+  tag: 1.12
+  pullPolicy: Always
+
+imagePullSecrets: []
+#  - name: repo-credentials
+ 
+# enable/disable pod anti-affinity rules.
+# mode sets the preffered or required during scheduling settings while topology can be set to per node/host or per zone/az
+#
+# mode: soft|hard
+# topology: host|zone
+antiAffinity:
+  enabled: true
+  mode: soft
+  topology: zone
+
+# optionally define nodeAffinity
+nodeAffinity: {}
+# optionally define tolerations
+tolerations: []
+
+# PodDisruptionBudget, set to 0 to disable.
+budget:
+  minAvailable: 0
+  maxUnavailable: 0
+
+# Service configuration
+# Exposing on default postgres port 5432 as it's running in Kubernets and it's nicer than to
+# have to reference the pgbouncer port (default 6432) for database connections.
+service:
+  enabled: false
+  type: ClusterIP
+  name: ""
+  port: 5432
+  labels: {}
+  annotations: {}
+
+
+### PgBouncer Configuration
+### See https://www.pgbouncer.org/config.html for more information about available configuration options.
+# Databases in pgbouncer.ini
+databases: {}
+#  name:
+#    dbname: database
+#    host: host
+#    port: port
+#    user: user
+
+
+# User setup.
+# userlist will be populated in userlist.txt
+# admin_users & stats_users will be added in pgbouncer.ini
+users:
+  userlist: {}
+  #  admin: supersecretpass
+  # or for md5 auth_type
+  # to generate md5 password hash: PASS=md5 + $(echo -n "md5"; echo -n "supersecretpassadmin" | md5sum | awk '{print $1}')
+  #  username: md5md53f84a3c26198d9b94054ca7a3839366d
+  admin_users: []
+  #- admin
+  stats_users: []
+  #- stats_collector
+
+# Add other pgbouncer.ini configuration can be set here as key-value pairs. (https://www.pgbouncer.org/config.html)
+config:
+  auth_type: plain
+  auth_query: "SELECT usename, passwd FROM pg_shadow WHERE usename=$1"
+
+  max_client_conn: 100
+  default_pool_size: 20
+  min_pool_size: 0
+  reserve_pool_size: 0
+  reserve_pool_timeout: 5
+
+  log_connections: 0
+  log_disconnections: 0
+  log_pooler_errors: 0
+  log_stats: 1
+  stats_period: 60
+  verbose: 0
+
+  #server_tls_sslmode: prefer
+  #ignore_startup_parameters: extra_float_digits

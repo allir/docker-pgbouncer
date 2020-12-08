@@ -1,0 +1,105 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "pgbouncer.fullname" . }}
+  labels:
+    {{- include "pgbouncer.labels" . | nindent 4 }}
+    {{- if .Values.deployment.labels }}
+    {{- toYaml .Values.deployment.labels | nindent 4 }}
+    {{- end }}
+  annotations:
+    {{- if .Values.deployment.annotations }}
+    {{- toYaml .Values.deployment.annotations | nindent 4 }}
+    {{- end }}
+spec:
+  {{- if .Values.stategy }}
+  strategy:
+    {{- toYaml .Values.strategy | nindent 4 }}
+  {{- end }}
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "pgbouncer.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "pgbouncer.labels" . | nindent 8 }}
+        {{- if .Values.pod.labels }}
+        {{- toYaml .Values.pod.labels | nindent 8 }}
+        {{- end }}
+      annotations:
+        checksum/ini: {{ include "pgbouncer.pgbouncer.ini" . | sha256sum }}
+        checksum/users: {{ include "pgbouncer.userlist.txt" . | sha256sum }}
+        {{- if .Values.pod.annotations }}
+        {{- toYaml .Values.pod.annotations | nindent 8 }}
+        {{- end }}
+    spec:
+      {{- if .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{ toYaml .Values.imagePullSecrets | indent 8 | trim }}
+      {{- end }}
+      affinity:
+        {{- if .Values.antiAffinity.enabled }}
+        podAntiAffinity:
+          {{- if eq .Values.antiAffinity.mode "hard" }}
+          requiredDuringSchedulingIgnoredDuringExecution:
+            - labelSelector:
+                matchLabels:
+                  {{- include "pgbouncer.selectorLabels" . | nindent 18 }}
+              {{- if eq .Values.antiAffinity.topology "host" }}
+              topologyKey: kubernetes.io/hostname
+              {{- else if eq .Values.antiAffinity.topology "zone" }}
+              topologyKey: kubernetes.io/zone
+              {{- end }}
+          {{- else if eq .Values.antiAffinity.mode "soft" }}
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - podAffinityTerm:
+                labelSelector:
+                  matchLabels:
+                    {{- include "pgbouncer.selectorLabels" . | nindent 20 }}
+                {{- if eq .Values.antiAffinity.topology "host" }}
+                topologyKey: kubernetes.io/hostname
+                {{- else if eq .Values.antiAffinity.topology "zone" }}
+                topologyKey: kubernetes.io/zone
+                {{- end }}
+              weight: 100
+          {{- end }}
+        {{- end }}
+        {{- if .Values.nodeAffinity }}
+        nodeAffinity:
+          {{- toYaml .Values.nodeAffinity | nindent 10 }}
+        {{- end }}
+      {{- if .Values.tolerations }}
+      tolerations:
+        {{- toYaml .Values.tolerations | nindent 8 }}
+      {{- end }}
+      volumes:
+        - name: secret
+          secret:
+            secretName: {{ include "pgbouncer.fullname" . }}-secret
+      containers:
+        - name: pgbouncer
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            - name: postgres
+              containerPort: {{ include "pgbouncer.containerPort" . }}
+          readinessProbe:
+            tcpSocket:
+              port: {{ include "pgbouncer.containerPort" . }}
+          lifecycle:
+            preStop:
+              exec:
+                # https://freecontent.manning.com/handling-client-requests-properly-with-kubernetes/
+                command: ["/bin/sh","-c","sleep 5"]
+          volumeMounts:
+            - name: secret
+              subPath: userlist.txt
+              mountPath: /etc/pgbouncer/userlist.txt
+              readOnly: true
+            - name: secret
+              subPath: pgbouncer.ini
+              mountPath: /etc/pgbouncer/pgbouncer.ini
+              readOnly: true
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}

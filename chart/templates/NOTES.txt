@@ -6,3 +6,11 @@ To learn more about the release, try:
 
   $ helm status {{ .Release.Name }}
   $ helm get {{ .Release.Name }}
+
+
+Connecting to PostgreSQL inside the cluster:
+
+  psql "host={{ default (include "pgbouncer.fullname" .) .Values.service.name }}.{{ .Release.Namespace }} \
+        port={{ .Values.service.port }} \
+        dbname=<some_db_name> \
+        user=<some_db_user>"

@@ -1,6 +1,6 @@
-# kubernetes-helm-chart-pgbouncer
+# pgbouncer-kubernetes
 
-This project is a [Helm](https://helm.sh/) chart for [PgBouncer](https://pgbouncer.github.io).
+This project contains a [Helm](https://helm.sh/) chart and a [Docker](https://docker.com) image for [PgBouncer](https://pgbouncer.github.io).
 
 ---
 
@@ -10,8 +10,8 @@ Create a `my-values.yaml` file (or whatever filename you like) to add your *data
 
 ```yaml
 # my-values.yaml example
-replicaCount: 1
-verbose: 1
+deployment:
+  replicas: 1
 
 databases:
   mydatabase:

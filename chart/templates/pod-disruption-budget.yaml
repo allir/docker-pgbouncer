@@ -1,4 +1,7 @@
-{{- if or (.Values.budget.minAvailable) (.Values.budget.maxUnavailable) -}}
+{{- if .Values.budget -}}
+{{- if and .Values.budget.minAvailable .Values.budget.maxUnavailable -}}
+{{- required "You can only set either minAvailable or maxUnavailable but not both." nil -}}
+{{- end -}}
 apiVersion: policy/v1beta1
 kind: PodDisruptionBudget
 metadata:

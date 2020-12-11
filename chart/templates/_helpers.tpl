@@ -39,7 +39,7 @@ Common labels
 app.kubernetes.io/managed-by: {{ .Release.Service }}
 helm.sh/chart: {{ include "pgbouncer.chart" . }}
 {{ include "pgbouncer.selectorLabels" . }}
-{{- end }}
+{{- end -}}
 
 {{/*
 Selector labels
@@ -47,11 +47,11 @@ Selector labels
 {{- define "pgbouncer.selectorLabels" -}}
 app.kubernetes.io/name: {{ include "pgbouncer.fullname" . }}
 app.kubernetes.io/instance: {{ .Release.Name }}
-{{- end }}
+{{- end -}}
 
 {{/*
 Constant for defining pgbouncer container port
 */}}
 {{- define "pgbouncer.containerPort" -}}
 6432
-{{- end }}
+{{- end -}}

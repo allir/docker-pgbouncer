@@ -1,62 +1,70 @@
 # Deployment values for PgBouncer
+nameOverride: ""
+fullnameOverride: ""
+
 ### Kubernetes Configuration
-# Number of replicas to deploy
-replicaCount: 1
-
-# Define update strategy for the deployment.
-strategy: {}
-#  rollingUpdate:
-#    maxUnavailable: 10%
-#    maxSurge: 50%
-
-# Labels & Annotations for the Deployment
+# Deployment Spec
 deployment:
+  # Number of Replicas to deploy
+  replicas: 1
+  # Update Strategy
+  strategy: {}
+  # Labels & Annotations for the Deployment
   labels: {}
   annotations: {}
-# Labels & Annotations for the Pod Spec
+
+# Pod Spec
 pod:
+  # Labels & Annotations for the Pod Spec
   labels: {}
   annotations: {}
+  # enable/disable pod anti-affinity rules.
+  # mode sets the preferred or required during scheduling settings while topology can be set to per node/host, zone/az or region
+  #
+  # mode: soft|hard
+  # topology: host|zone|region
+  antiAffinity: {}
+  #  enabled: true
+  #  mode: soft
+  #  topology: zone
+
+  # optionally define podAffinity
+  podAffinity: {}
+  # optionally define nodeAffinity
+  nodeAffinity: {}
+
+  # optionally define tolerations
+  tolerations: []
 
 image:
   repository: allir/pgbouncer
   tag: 1.14
   pullPolicy: Always
 
+# Resource settings for the container
+resources: {}
+#  limits:
+#    cpu: 500m
+#    memory: 128Mi
+#  requests:
+#    cpu: 1000m
+#    memory: 512Mi
+
 imagePullSecrets: []
 #  - name: repo-credentials
- 
-# enable/disable pod anti-affinity rules.
-# mode sets the preffered or required during scheduling settings while topology can be set to per node/host, zone/az or region
-#
-# mode: soft|hard
-# topology: host|zone|region
-antiAffinity:
-  enabled: true
-  mode: soft
-  topology: zone
 
-# optionally define nodeAffinity
-nodeAffinity: {}
-# optionally define tolerations
-tolerations: []
-
-# PodDisruptionBudget, set to 0 to disable.
-budget:
-  minAvailable: 0
-  maxUnavailable: 0
+# PodDisruptionBudget
+budget: {}
 
 # Service configuration
 # Exposing on default postgres port 5432 as it's running in Kubernets and it's nicer than to
 # have to reference the pgbouncer port (default 6432) for database connections.
 service:
-  enabled: false
-  type: ClusterIP
   name: ""
+  type: ClusterIP
   port: 5432
   labels: {}
   annotations: {}
-
 
 ### PgBouncer Configuration
 ### See https://www.pgbouncer.org/config.html for more information about available configuration options.
@@ -68,24 +76,30 @@ databases: {}
 #    port: port
 #    user: user
 
-
 # User setup.
 # userlist will be populated in userlist.txt
 # admin_users & stats_users will be added in pgbouncer.ini
 users:
   userlist: {}
   #  admin: supersecretpass
-  # or for md5 auth_type
+  #
   # to generate md5 password hash: PASS=md5 + $(echo -n "md5"; echo -n "supersecretpassadmin" | md5sum | awk '{print $1}')
-  #  username: md5md53f84a3c26198d9b94054ca7a3839366d
+  #userlist:
+  #  admin: md5md53f84a3c26198d9b94054ca7a3839366d
+ 
+  # admin_users are database users that are allowed to connect and run all commands on the console. 
+  # usernames listed here should also exist in the userlist.
   admin_users: []
   #- admin
+  
+  # stats_users are database users that are allowed to connect and run read-only queries on the console. 
+  # usernames listed here should also exist in the userlist.
   stats_users: []
   #- stats_collector
 
 # Add other pgbouncer.ini configuration can be set here as key-value pairs. (https://www.pgbouncer.org/config.html)
 config:
-  auth_type: plain
+  auth_type: md5
   auth_query: "SELECT usename, passwd FROM pg_shadow WHERE usename=$1"
 
   max_client_conn: 100
@@ -103,3 +117,23 @@ config:
 
   #server_tls_sslmode: prefer
   #ignore_startup_parameters: extra_float_digits
+
+### Metrics Exporter Configuration
+# https://github.com/spreaker/prometheus-pgbouncer-exporter/
+# https://hub.docker.com/r/spreaker/prometheus-pgbouncer-exporter/
+metrics:
+  enabled: false
+  # A user is required here and must exist in the userlist.
+  user: ""
+  port: 9090
+  image:
+    repository: spreaker/prometheus-pgbouncer-exporter
+    tag: 2.1.1
+    pullPolicy: IfNotPresent
+  resources:
+    limits:
+      cpu: 20m
+      memory: 42Mi
+    requests:
+      cpu: 10m
+      memory: 21Mi

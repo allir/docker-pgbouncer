@@ -12,11 +12,11 @@ metadata:
     {{- toYaml .Values.deployment.annotations | nindent 4 }}
     {{- end }}
 spec:
-  {{- if .Values.stategy }}
+  {{- if .Values.deployment.stategy }}
   strategy:
-    {{- toYaml .Values.strategy | nindent 4 }}
+    {{- toYaml .Values.deployment.strategy | nindent 4 }}
   {{- end }}
-  replicas: {{ .Values.replicaCount }}
+  replicas: {{ .Values.deployment.replicas }}
   selector:
     matchLabels:
       {{- include "pgbouncer.selectorLabels" . | nindent 6 }}
@@ -30,63 +30,75 @@ spec:
       annotations:
         checksum/ini: {{ include "pgbouncer.pgbouncer.ini" . | sha256sum }}
         checksum/users: {{ include "pgbouncer.userlist.txt" . | sha256sum }}
+        {{- if .Values.metrics.enabled }}
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "{{ .Values.metrics.port }}"
+        {{- end }}
         {{- if .Values.pod.annotations }}
         {{- toYaml .Values.pod.annotations | nindent 8 }}
         {{- end }}
     spec:
+      automountServiceAccountToken: false
       {{- if .Values.imagePullSecrets }}
       imagePullSecrets:
         {{ toYaml .Values.imagePullSecrets | indent 8 | trim }}
       {{- end }}
       affinity:
-        {{- if .Values.antiAffinity.enabled }}
+        {{- if .Values.pod.antiAffinity.enabled }}
         podAntiAffinity:
-          {{- if eq .Values.antiAffinity.mode "hard" }}
+          {{- if eq .Values.pod.antiAffinity.mode "hard" }}
           requiredDuringSchedulingIgnoredDuringExecution:
             - labelSelector:
                 matchLabels:
                   {{- include "pgbouncer.selectorLabels" . | nindent 18 }}
-              {{- if eq .Values.antiAffinity.topology "host" }}
+              {{- if eq .Values.pod.antiAffinity.topology "host" }}
               topologyKey: kubernetes.io/hostname
-              {{- else if eq .Values.antiAffinity.topology "zone" }}
+              {{- else if eq .Values.pod.antiAffinity.topology "zone" }}
               topologyKey: topology.kubernetes.io/zone
-              {{- else if eq .Values.antiAffinity.topology "region" }}
+              {{- else if eq .Values.pod.antiAffinity.topology "region" }}
               topologyKey: topology.kubernetes.io/region
               {{- end }}
-          {{- else if eq .Values.antiAffinity.mode "soft" }}
+          {{- else if eq .Values.pod.antiAffinity.mode "soft" }}
           preferredDuringSchedulingIgnoredDuringExecution:
             - podAffinityTerm:
                 labelSelector:
                   matchLabels:
                     {{- include "pgbouncer.selectorLabels" . | nindent 20 }}
-                {{- if eq .Values.antiAffinity.topology "host" }}
+                {{- if eq .Values.pod.antiAffinity.topology "host" }}
                 topologyKey: kubernetes.io/hostname
-                {{- else if eq .Values.antiAffinity.topology "zone" }}
+                {{- else if eq .Values.pod.antiAffinity.topology "zone" }}
                 topologyKey: topology.kubernetes.io/zone
-                {{- else if eq .Values.antiAffinity.topology "region" }}
+                {{- else if eq .Values.pod.antiAffinity.topology "region" }}
                 topologyKey: topology.kubernetes.io/region
                 {{- end }}
               weight: 100
           {{- end }}
         {{- end }}
-        {{- if .Values.nodeAffinity }}
-        nodeAffinity:
-          {{- toYaml .Values.nodeAffinity | nindent 10 }}
+        {{- if .Values.pod.podAffinity }}
+        podAffinity:
+          {{- toYaml .Values.pod.podAffinity | nindent 10 }}
         {{- end }}
-      {{- if .Values.tolerations }}
+        {{- if .Values.pod.nodeAffinity }}
+        nodeAffinity:
+          {{- toYaml .Values.pod.nodeAffinity | nindent 10 }}
+        {{- end }}
+      {{- if .Values.pod.tolerations }}
       tolerations:
-        {{- toYaml .Values.tolerations | nindent 8 }}
+        {{- toYaml .Values.pod.tolerations | nindent 8 }}
       {{- end }}
       volumes:
-        - name: secret
+        - name: config
           secret:
-            secretName: {{ include "pgbouncer.fullname" . }}-secret
+            secretName: {{ include "pgbouncer.fullname" . }}-config
+        - name: userlist
+          secret:
+            secretName: {{ include "pgbouncer.fullname" . }}-userlist
       containers:
         - name: pgbouncer
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           ports:
-            - name: postgres
+            - name: pgbouncer
               containerPort: {{ include "pgbouncer.containerPort" . }}
           readinessProbe:
             tcpSocket:
@@ -97,13 +109,38 @@ spec:
                 # https://freecontent.manning.com/handling-client-requests-properly-with-kubernetes/
                 command: ["/bin/sh","-c","sleep 5"]
           volumeMounts:
-            - name: secret
+            - name: userlist
               subPath: userlist.txt
               mountPath: /etc/pgbouncer/userlist.txt
               readOnly: true
-            - name: secret
+            - name: config
               subPath: pgbouncer.ini
               mountPath: /etc/pgbouncer/pgbouncer.ini
               readOnly: true
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
+        {{- if .Values.metrics.enabled }}
+        - name: exporter
+          image: "{{ .Values.metrics.image.repository }}:{{ .Values.metrics.image.tag }}"
+          imagePullPolicy: {{ .Values.metrics.image.pullPolicy }}
+          env:
+          - name: PGBOUNCER_EXPORTER_HOST
+            value: 0.0.0.0
+          - name: PGBOUNCER_EXPORTER_PORT
+            value: {{ .Values.metrics.port | quote }}
+          - name: PGBOUNCER_PORT
+            value: {{ include "pgbouncer.containerPort" . | quote }}
+          - name: PGBOUNCER_USER
+            value: {{ .Values.metrics.user }}
+          - name: PGBOUNCER_PASS
+            valueFrom:
+              secretKeyRef:
+                name: {{ include "pgbouncer.fullname" . }}-userlist
+                key: {{ required "When metrics exporter is enabled it must be provided with a user" .Values.metrics.user }}
+          resources:
+            {{ toYaml .Values.metrics.resources | indent 12 | trim }}
+          ports:
+            - name: metrics
+              containerPort: {{ .Values.metrics.port }}
+              protocol: TCP
+        {{- end }}

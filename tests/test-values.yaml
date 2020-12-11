@@ -6,27 +6,35 @@ fullnameOverride: ""
 # Deployment Spec
 deployment:
   # Number of Replicas to deploy
-  replicas: 1
+  replicas: 2
   # Update Strategy
-  strategy: {}
+  strategy:
+    rollingUpdate:
+      maxUnavailable: 1
+      maxSurge: 2
   # Labels & Annotations for the Deployment
-  labels: {}
-  annotations: {}
+  labels:
+    deploylabel: onthedeployment
+  annotations:
+    deployannotation: onthedeployment
 
 # Pod Spec
 pod:
   # Labels & Annotations for the Pod Spec
-  labels: {}
-  annotations: {}
+  labels:
+    podlabel: onthepod
+  # Add custom pod annotations here
+  annotations:
+    podAnnotation: onthepod
   # enable/disable pod anti-affinity rules.
   # mode sets the preferred or required during scheduling settings while topology can be set to per node/host, zone/az or region
   #
   # mode: soft|hard
   # topology: host|zone|region
-  antiAffinity: {}
-  #  enabled: true
-  #  mode: soft
-  #  topology: zone
+  antiAffinity:
+    enabled: true
+    mode: soft
+    topology: region
 
   # optionally define podAffinity
   podAffinity: {}
@@ -41,82 +49,76 @@ image:
   tag: 1.14
   pullPolicy: Always
 
-imagePullSecrets: []
-#  - name: repo-credentials
+imagePullSecrets:
+  - name: my-imagepull-secret
 
 # Resource settings for the container
-resources: {}
-#  limits:
-#    cpu: 500m
-#    memory: 128Mi
-#  requests:
-#    cpu: 1000m
-#    memory: 512Mi
+resources:
+  limits:
+    cpu: 500m
+    memory: 128Mi
+  requests:
+    cpu: 1000m
+    memory: 512Mi
 
 # PodDisruptionBudget
-budget: {}
+budget:
+  minAvailable: 1
 
 # Service configuration
 # Exposing on default postgres port 5432 as it's running in Kubernets and it's nicer than to
 # have to reference the pgbouncer port (default 6432) for database connections.
 service:
-  name: ""
+  name: pgbouncer-service
   type: ClusterIP
   port: 5432
-  labels: {}
-  annotations: {}
+  labels:
+    servicelabel: ontheservice
+  annotations:
+    serviceannotation: ontheservice
 
 ### PgBouncer Configuration
 ### See https://www.pgbouncer.org/config.html for more information about available configuration options.
 # Databases in pgbouncer.ini
-databases: {}
-#  name:
-#    dbname: database
-#    host: host
-#    port: port
-#    user: user
+databases:
+  db1:
+    dbname: database
+    host: dbserver
+    port: 6432
+    user: admin
 
 # User setup.
 # userlist will be populated in userlist.txt
 # admin_users & stats_users will be added in pgbouncer.ini
 users:
-  userlist: {}
-  #  admin: supersecretpass
-  #
-  # to generate md5 password hash: PASS=md5 + $(echo -n "md5"; echo -n "supersecretpassadmin" | md5sum | awk '{print $1}')
-  #userlist:
-  #  admin: md5md53f84a3c26198d9b94054ca7a3839366d
- 
-  # admin_users are database users that are allowed to connect and run all commands on the console. 
-  # usernames listed here should also exist in the userlist.
-  admin_users: []
-  #- admin
-  
-  # stats_users are database users that are allowed to connect and run read-only queries on the console. 
-  # usernames listed here should also exist in the userlist.
-  stats_users: []
-  #- stats_collector
+  userlist:
+    admin: supersecret
+    metrics: securepassword
+  admin_users:
+    - admin
+  stats_users:
+    - metrics
 
 # Add other pgbouncer.ini configuration can be set here as key-value pairs. (https://www.pgbouncer.org/config.html)
 config:
-  auth_type: md5
+  auth_type: plain
   auth_query: "SELECT usename, passwd FROM pg_shadow WHERE usename=$1"
 
   max_client_conn: 100
   default_pool_size: 20
   min_pool_size: 0
-  reserve_pool_size: 0
+  reserve_pool_size: 10
   reserve_pool_timeout: 5
 
-  log_connections: 0
-  log_disconnections: 0
-  log_pooler_errors: 0
+  log_connections: 1
+  log_disconnections: 1
+  log_pooler_errors: 1
   log_stats: 1
   stats_period: 60
-  verbose: 0
+  verbose: 1
 
-  #server_tls_sslmode: prefer
-  #ignore_startup_parameters: extra_float_digits
+  server_tls_sslmode: prefer
+  ignore_startup_parameters: extra_float_digits
 
 ### Metrics Exporter Configuration
 # https://github.com/spreaker/prometheus-pgbouncer-exporter/

@@ -125,7 +125,7 @@ metrics:
   enabled: false
   # A user is required here and must exist in the userlist.
   user: ""
-  port: 9090
+  port: 9127
   image:
     repository: spreaker/prometheus-pgbouncer-exporter
     tag: 2.1.1

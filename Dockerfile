@@ -1,8 +1,8 @@
-FROM ubuntu:20.10
+FROM ubuntu:21.04
 
 ENV LANG C.UTF-8
 ENV PG_CONFIG /etc/pgbouncer/pgbouncer.ini
-ENV PG_VERSION 1.14.0-1
+ENV PG_VERSION 1.15.0-1
 
 EXPOSE 6432/tcp
 

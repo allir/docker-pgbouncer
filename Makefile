@@ -14,6 +14,7 @@ help:
 image:  ## Build docker image
 	docker build \
 	  --tag ${DOCKER_REPO}:${APP_VERSION} .
+	docker tag ${DOCKER_REPO}:${APP_VERSION} ${DOCKER_REPO}:latest
 
 .PHONY: push
 push: ## Push docker image to a repository

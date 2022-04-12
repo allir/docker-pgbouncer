@@ -38,7 +38,7 @@ pod:
 
 image:
   repository: allir/pgbouncer
-  tag: 1.14
+  tag: 1.15
   pullPolicy: Always
 
 imagePullSecrets: []
